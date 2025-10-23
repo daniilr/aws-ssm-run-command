@@ -91,7 +91,10 @@ export async function run() {
 
     const stdout = finalInvocation.StandardOutputContent || ''
     const stderr = finalInvocation.StandardErrorContent || ''
-    const statusCode = finalInvocation.ResponseCode ?? -1
+    const statusCode =
+      finalInvocation.ResponseCode !== undefined
+        ? finalInvocation.ResponseCode
+        : -1
 
     // Log outputs
     if (stdout) {
