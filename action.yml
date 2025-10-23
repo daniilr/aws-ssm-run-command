@@ -1,23 +1,42 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: Run command using AWS SSM
+description: Run command using AWS SSM
+author: Daniil Ryzhkov
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
   icon: heart
   color: red
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  instance-id:
+    description: AWS EC2 Instance ID
     required: true
-    default: '1000'
+  region:
+    description: AWS region
+    required: true
+  command:
+    description: Shell command to run on the EC2 instance
+    required: true
+  working-directory:
+    description: Working directory for the command execution
+    required: false
+  timeout-seconds:
+    description: Timeout in seconds for command execution (default 3600)
+    required: false
+    default: '3600'
 
 # Define your outputs here.
 outputs:
-  time:
-    description: Your output description here
+  stdout:
+    description: Standard output from the command execution
+  stderr:
+    description: Standard error from the command execution
+  status:
+    description: Command execution status (Success, Failed, TimedOut, etc.)
+  status-code:
+    description: Exit code from the command
+  command-id:
+    description: SSM Command ID for tracking
 
 runs:
   using: node24
