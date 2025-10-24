@@ -39284,6 +39284,7 @@ async function run() {
     coreExports.info('Waiting for command to complete...');
     let status = 'InProgress';
     let attempts = 0;
+    let lastInvocationResponse;
     const maxAttempts = 120; // 10 minutes max wait with 5 second intervals
 
     while (status === 'InProgress' || status === 'Pending') {
@@ -39295,39 +39296,29 @@ async function run() {
 
       await wait(5000); // Wait 5 seconds between checks
 
-      const invocationResponse = await ssmClient.send(
+      lastInvocationResponse = await ssmClient.send(
         new GetCommandInvocationCommand({
           CommandId: commandId,
           InstanceId: instanceId
         })
       );
 
-      status = invocationResponse.Status;
+      status = lastInvocationResponse.Status;
       coreExports.info(`Command status: ${status}`);
 
       attempts++;
     }
 
-    // Get the final command output
-    const finalInvocation = await ssmClient.send(
-      new GetCommandInvocationCommand({
-        CommandId: commandId,
-        InstanceId: instanceId
-      })
-    );
-
-    const stdout = finalInvocation.StandardOutputContent || '';
-    const stderr = finalInvocation.StandardErrorContent || '';
-    const statusCode = finalInvocation.ResponseCode || -1;
+    const stdout = lastInvocationResponse.StandardOutputContent || '';
+    const stderr = lastInvocationResponse.StandardErrorContent || '';
+    const statusCode = lastInvocationResponse.ResponseCode;
 
     // Log outputs
     if (stdout) {
-      coreExports.info('Standard Output:');
       coreExports.info(stdout);
     }
 
     if (stderr) {
-      coreExports.warning('Standard Error:');
       coreExports.warning(stderr);
     }
 
@@ -39346,7 +39337,9 @@ async function run() {
     } else if (status === 'Cancelled') {
       coreExports.setFailed('Command execution was cancelled');
     } else if (statusCode !== 0) {
-      coreExports.setFailed(`Command exited with non-zero status code: ${statusCode}`);
+      coreExports.setFailed(
+        `Command exited with non-zero status code: ${statusCode}, status: ${status}`
+      );
     } else {
       coreExports.info(`Command completed successfully with status: ${status}`);
     }
