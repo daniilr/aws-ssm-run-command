@@ -57,6 +57,7 @@ export async function run() {
     core.info('Waiting for command to complete...')
     let status = 'InProgress'
     let attempts = 0
+    let lastInvocationResponse
     const maxAttempts = 120 // 10 minutes max wait with 5 second intervals
 
     while (status === 'InProgress' || status === 'Pending') {
@@ -68,39 +69,29 @@ export async function run() {
 
       await wait(5000) // Wait 5 seconds between checks
 
-      const invocationResponse = await ssmClient.send(
+      lastInvocationResponse = await ssmClient.send(
         new GetCommandInvocationCommand({
           CommandId: commandId,
           InstanceId: instanceId
         })
       )
 
-      status = invocationResponse.Status
+      status = lastInvocationResponse.Status
       core.info(`Command status: ${status}`)
 
       attempts++
     }
 
-    // Get the final command output
-    const finalInvocation = await ssmClient.send(
-      new GetCommandInvocationCommand({
-        CommandId: commandId,
-        InstanceId: instanceId
-      })
-    )
-
-    const stdout = finalInvocation.StandardOutputContent || ''
-    const stderr = finalInvocation.StandardErrorContent || ''
-    const statusCode = finalInvocation.ResponseCode
+    const stdout = lastInvocationResponse.StandardOutputContent || ''
+    const stderr = lastInvocationResponse.StandardErrorContent || ''
+    const statusCode = lastInvocationResponse.ResponseCode
 
     // Log outputs
     if (stdout) {
-      core.info('Standard Output:')
       core.info(stdout)
     }
 
     if (stderr) {
-      core.warning('Standard Error:')
       core.warning(stderr)
     }
 
@@ -119,7 +110,9 @@ export async function run() {
     } else if (status === 'Cancelled') {
       core.setFailed('Command execution was cancelled')
     } else if (statusCode !== 0) {
-      core.setFailed(`Command exited with non-zero status code: ${statusCode}`)
+      core.setFailed(
+        `Command exited with non-zero status code: ${statusCode}, status: ${status}`
+      )
     } else {
       core.info(`Command completed successfully with status: ${status}`)
     }
