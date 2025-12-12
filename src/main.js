@@ -93,6 +93,7 @@ export async function run() {
 
     if (stderr) {
       core.warning(stderr)
+      core.setFailed('Stderr detected')
     }
 
     // Set action outputs

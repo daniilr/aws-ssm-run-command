@@ -39320,6 +39320,7 @@ async function run() {
 
     if (stderr) {
       coreExports.warning(stderr);
+      coreExports.setFailed('Stderr detected');
     }
 
     // Set action outputs
